@@ -1,0 +1,50 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.*"
+
+permissions:
+    contents: write
+    packages: write
+
+jobs:  
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Create Release
+        id: create_release
+        uses: ncipollo/release-action@v1
+  
+  releases-matrix:
+    needs: release 
+    name: Upload Release Binary
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [stego]
+        goos: [linux, windows, darwin]
+        goarch: ["386", amd64, arm64,arm]
+        exclude:
+          - goarch: "386"
+            goos: darwin
+          - goarch: arm
+            goos: darwin
+    steps:
+    - uses: actions/checkout@v4
+    - uses: wangyoucao577/go-release-action@v1
+      with:
+        multi_binaries: true
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        project_path: ./cmd/${{ matrix.app }}
+        goversion: "https://go.dev/dl/go1.24.2.linux-amd64.tar.gz"
+        binary_name: ${{ matrix.app }}
+        extra_files: LICENSE README.md
